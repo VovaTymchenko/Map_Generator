@@ -11,6 +11,8 @@ namespace Map_Generator
     {
         static void Main(string[] args)
         {
+            Random rnd = new Random();
+
             // Define the width and height of the image
             int width = 100;
             int height = 100;
@@ -21,7 +23,7 @@ namespace Map_Generator
 
             for (int i = 0; i < data.Length; i++)
             {
-                data[i] = Color.FromArgb(255, 255, 0, 0); // Example: Red color for each pixel
+                data[i] = Color.FromArgb(0, 0, 0, rnd.Next(0, 255)); // Example: Red color for each pixel
             }
 
             // Loop through each pixel in the image and set its color based on the data array
@@ -46,7 +48,7 @@ namespace Map_Generator
             }
 
             // Save the image to a file
-            image.Save("image.jpg");
+            image.Save("image.png");
         }
     }
 }
