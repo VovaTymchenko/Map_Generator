@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Map_Generator
 {
@@ -11,100 +12,164 @@ namespace Map_Generator
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("map size (px): ");
+            int size = int.Parse(Console.ReadLine());
+            Console.WriteLine("map roughness (0 - 255): ");
+            int range = int.Parse(Console.ReadLine());
+
+            Color[,] data = new Color[size, size];
+
+            data = Noise(size, range, data);
+
+            CreateImage(size, data);
+
+            Console.ReadKey();
+        }
+
+        static Color[,] Noise(int size, int range, Color[,] data) // Generating noise texture
+        {
             Random rnd = new Random();
 
-            // Define the width and height of the image
-            int size = 100;
-            int colorDiffMax = 255, colorDiffNormal = 51, whiteDiffMax = 100, whiteDiffNormal = 20;
-
-            // Create a new Bitmap object with the specified width and height
-            Bitmap image = new Bitmap(size, size);
-            Color[,] data = new Color[size, size];
+            Color[,] data2 = new Color[size, size];
+            Color[,] data3 = new Color[size, size];
 
             // Filling up the array
             for (int i = 0; i < size; i++)
             {
                 for (int j = 0; j < size; j++)
                 {
-                    int blue = rnd.Next(105, 255);
-                    int white = (255 - blue) / 2;
+
                     bool isTop = i < 1, isLeft = j < 1;
                     // All except Left & Top borders
                     if (!isLeft && !isTop)
                     {
-                        int r1a = data[i, j - 1].R;
-                        int r1b = data[i - 1, j].R;
-                        int r1c = r1a + r1b;
-                        int r2 = r1c / 2;
-                        int r3 = white - r2;
-                        int r4 = r3 / 5;
-                        int r5 = r2 + r4;
-                        int g1a = data[i, j - 1].G;
-                        int g1b = data[i - 1, j].G;
-                        int g1c = g1a + g1b;
-                        int g2 = g1c / 2;
-                        int g3 = white - g2;
-                        int g4 = g3 / 5;
-                        int g5 = g2 + g4;
-                        int b1a = data[i, j - 1].B;
-                        int b1b = data[i - 1, j].B;
-                        int b1c = b1a + b1b;
-                        int b2 = b1c / 2;
-                        int b3 = blue - b2;
-                        int b4 = b3 / 5;
-                        int b5 = b2 + b4;
-                        //Console.Write(r1a + " ");
-                        //Console.Write(r1b + " ");
-                        //Console.Write(r1c + " ");
-                        //Console.Write(r2 + " ");
-                        //Console.Write(white + " ");
-                        //Console.Write(r3 + " ");
-                        //Console.Write(r4 + " ");
-                        //Console.WriteLine(r5 + " ");
-                        data[i, j] = Color.FromArgb(0,
-                            r5,
-                            g5,
-                            b5);
+                        if (data[i, j - 1].R < data[i - 1, j].R)
+                        {
+                            int rndMin = data[i, j - 1].R - range, rndMax = data[i - 1, j].R + range;
+                            if (rndMin < 0) rndMin = 0;
+                            if (rndMax > 255) rndMax = 255;
+                            int white = rnd.Next(rndMin, rndMax);
+                            data[i, j] = Color.FromArgb(0, white, white, white);
+                        }
+                        else
+                        {
+                            int rndMin = data[i - 1, j].R - range, rndMax = data[i, j - 1].R + range;
+                            if (rndMin < 0) rndMin = 0;
+                            if (rndMax > 255) rndMax = 255;
+                            int white = rnd.Next(rndMin, rndMax);
+                            data[i, j] = Color.FromArgb(0, white, white, white);
+                        }
                     }
                     // No Lefts
                     else if (!isLeft)
-                        data[i, j] = Color.FromArgb(0,
-                            data[i, j - 1].R + (white - data[i, j - 1].R) / 5,
-                            data[i, j - 1].G + (white - data[i, j - 1].G) / 5,
-                            data[i, j - 1].B + (blue - data[i, j - 1].B) / 5);
+                    {
+                        int rndMin = data[i, j - 1].R - range, rndMax = data[i, j - 1].R + range;
+                        if (rndMin < 0) rndMin = 0;
+                        if (rndMax > 255) rndMax = 255;
+                        int white = rnd.Next(rndMin, rndMax);
+                        data[i, j] = Color.FromArgb(0, white, white, white);
+                    }
                     // No Tops
                     else if (!isTop)
-                        data[i, j] = Color.FromArgb(0,
-                            data[i - 1, j].R + (white - data[i - 1, j].R) / 5,
-                            data[i - 1, j].G + (white - data[i - 1, j].G) / 5,
-                            data[i - 1, j].B + (blue - data[i - 1, j].B) / 5);
+                    {
+                        int rndMin = data[i - 1, j].R - range, rndMax = data[i - 1, j].R + range;
+                        if (rndMin < 0) rndMin = 0;
+                        if (rndMax > 255) rndMax = 255;
+                        int white = rnd.Next(rndMin, rndMax);
+                        data[i, j] = Color.FromArgb(0, white, white, white);
+                    }
                     // The only pixel - Top Left
-                    else data[i, j] = Color.FromArgb(0, white, white, rnd.Next(white + 50, 255));
+                    else data[i, j] = Color.FromArgb(0, rnd.Next(0, 255), rnd.Next(0, 255), rnd.Next(0, 255));
                 }
             }
-            
-            // Loop through each pixel in the image and set its color based on the data array
+            //Second array
+            for (int i = 0; i < size; i++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+
+                    bool isTop = i < 1, isLeft = j < 1;
+                    // All except Left & Top borders
+                    if (!isLeft && !isTop)
+                    {
+                        if (data2[i, j - 1].R < data2[i - 1, j].R)
+                        {
+                            int rndMin = data2[i, j - 1].R - range, rndMax = data2[i - 1, j].R + range;
+                            if (rndMin < 0) rndMin = 0;
+                            if (rndMax > 255) rndMax = 255;
+                            int white = rnd.Next(rndMin, rndMax);
+                            data2[i, j] = Color.FromArgb(0, white, white, white);
+                        }
+                        else
+                        {
+                            int rndMin = data2[i - 1, j].R - range, rndMax = data2[i, j - 1].R + range;
+                            if (rndMin < 0) rndMin = 0;
+                            if (rndMax > 255) rndMax = 255;
+                            int white = rnd.Next(rndMin, rndMax);
+                            data2[i, j] = Color.FromArgb(0, white, white, white);
+                        }
+                    }
+                    // No Lefts
+                    else if (!isLeft)
+                    {
+                        int rndMin = data2[i, j - 1].R - range, rndMax = data2[i, j - 1].R + range;
+                        if (rndMin < 0) rndMin = 0;
+                        if (rndMax > 255) rndMax = 255;
+                        int white = rnd.Next(rndMin, rndMax);
+                        data2[i, j] = Color.FromArgb(0, white, white, white);
+                    }
+                    // No Tops
+                    else if (!isTop)
+                    {
+                        int rndMin = data2[i - 1, j].R - range, rndMax = data2[i - 1, j].R + range;
+                        if (rndMin < 0) rndMin = 0;
+                        if (rndMax > 255) rndMax = 255;
+                        int white = rnd.Next(rndMin, rndMax);
+                        data2[i, j] = Color.FromArgb(0, white, white, white);
+                    }
+                    // The only pixel - Top Left
+                    else data2[i, j] = Color.FromArgb(0, rnd.Next(0, 255), rnd.Next(0, 255), rnd.Next(0, 255));
+                }
+            }
+
+            //Rotating array
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    // Get the RGB values from the data array
-                    int red = data[y, x].R;
-                    int green = data[y, x].G;
-                    int blue = data[y, x].B;
+                    data3[y, x] = data2[x, size - y - 1];
+                }
+            }
 
-                    // Create a Color object with the RGB values
-                    Color pixelColor = Color.FromArgb(red, green, blue);
+            //Adding arrays
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    data[y, x] = Color.FromArgb((data[y, x].R + data3[y, x].R) / 2, (data[y, x].G + data3[y, x].G) / 2, (data[y, x].B + data3[y, x].B) / 2);
+                }
+            }
 
-                    // Set the pixel color in the image
+            return data;
+        }
+
+        static void CreateImage(int size, Color[,] data) // Loop through each pixel in the image and set its color based on the data array
+        {
+            Bitmap image = new Bitmap(size, size);
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    Color pixelColor = Color.FromArgb(data[y, x].R, data[y, x].G, data[y, x].B);
+
                     image.SetPixel(x, y, pixelColor);
                 }
             }
 
-            // Save the image to a file
             image.Save("image.png");
 
-            //Console.ReadKey();
+            Console.WriteLine("saved to image.png");
         }
     }
 }
