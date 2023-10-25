@@ -10,67 +10,54 @@ namespace Map_Generator
         {
             Console.WriteLine("map size (px): ");
             int size = int.Parse(Console.ReadLine());
-            Console.WriteLine("map roughness (0 - 255): ");
+
+            Console.WriteLine("map scale (size / 5 - rec minimum): ");
             int range = int.Parse(Console.ReadLine());
 
             Color[,] data = new Color[size, size];
 
-            //data = Noise(size, range, data);
-            data = Perlin(size, range, data);
 
+
+            //data = ClothNoise(size, range, data);
+            data = PerlinNoise(size, range, data);
+             
             CreateImage(size, data);
+
+
 
             Console.ReadKey();
         }
 
-        //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-
-
-
-
-
-
-
-
-        // Function to linearly interpolate between a0 and a1
-        // Weight w should be in the range [0.0, 1.0]
-
-        static float interpolate(float a0, float a1, float w)
+        static float interpolate(float a0, float a1, float w) // Interpolate between a0 and a1; Weight w should be in the range [0.0, 1.0]
         {
-            /* // You may want clamping by inserting:
-             * if (0.0 > w) return a0;
-             * if (1.0 < w) return a1;
-             */
-            //return (a1 - a0) * w + a0;
-            // Use this cubic interpolation [[Smoothstep]] instead, for a smooth appearance:
+            // Cubic interpolation [[Smoothstep]]:
             return (float) ((a1 - a0) * (3.0 - w * 2.0) * w * w + a0);
-          
-            
+
             // Use [[Smootherstep]] for an even smoother result with a second derivative equal to zero on boundaries:
             //return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
         }
 
-        // Create pseudorandom direction vector
-        static Vector2 randomGradient(int ix, int iy)
+        static Vector2 randomVector(int ix, int iy) // Create pseudorandom direction vector
         {
             // No precomputed gradients mean this works for any number of grid coordinates
-            const uint w = 8 * sizeof(uint);
+            const uint w = 8 * sizeof(uint); // bit width
             const uint s = w / 2; // rotation width
-            uint a = (uint) ix, b = (uint) iy;
-            a *= 3284157443; b ^= (uint)((int)a << (int)s | (int)a >> (int)(w - s));
-            b *= 1911520717; a ^= (uint) ((int)b << (int)s | (int) b >> (int) (w - s));
+            uint a = (uint)ix, b = (uint)iy;
+            a *= 3284157443; b ^= (a << (int)s | a >> (int)(w - s));
+            b *= 1911520717; a ^= (b << (int)s | b >> (int)(w - s));
             a *= 2048419325;
-            float random = (float) (a * (3.14159265 / ~(~0u >> 1))); // in [0, 2*Pi]
+            float random = (float)(a * (3.14159265 / ~(~0u >> 1))); // in [0, 2*Pi]
+            // Magic ends here
+
             Vector2 v;
             v.X = (float)Math.Cos(random); v.Y = (float)Math.Sin(random);
             return v;
         }
 
-        // Computes the dot product of the distance and gradient vectors.
-        static float dotGridGradient(int ix, int iy, float x, float y)
+        static float cornerDotProduct(int ix, int iy, float x, float y) // Dot product of the distance and gradient vectors
         {
             // Get gradient from integer coordinates
-            Vector2 gradient = randomGradient(ix, iy);
+            Vector2 gradient = randomVector(ix, iy);
 
             // Vector from corner to candidate point
             Vector2 distance = new Vector2(x - ix, y - iy);
@@ -78,8 +65,7 @@ namespace Map_Generator
             return Vector2.Dot(distance, gradient);
         }
 
-        // Compute Perlin noise at coordinates x, y
-        static float perlin(float x, float y)
+        static float perlin(float x, float y) // Compute Perlin noise at coordinates x, y
         {
             // Determine grid cell coordinates
             int x0 = (int)Math.Floor(x);
@@ -96,13 +82,13 @@ namespace Map_Generator
             float n0, n1, ix0, ix1, value;
 
             // Compute and interpolate top two corners
-            n0 = dotGridGradient(x0, y0, x, y);
-            n1 = dotGridGradient(x1, y0, x, y);
+            n0 = cornerDotProduct(x0, y0, x, y);
+            n1 = cornerDotProduct(x1, y0, x, y);
             ix0 = interpolate(n0, n1, sx);
 
             // Compute and interpolate bottom two corners
-            n0 = dotGridGradient(x0, y1, x, y);
-            n1 = dotGridGradient(x1, y1, x, y);
+            n0 = cornerDotProduct(x0, y1, x, y);
+            n1 = cornerDotProduct(x1, y1, x, y);
             ix1 = interpolate(n0, n1, sx);
 
             // Interpolate between the two previously interpolated values
@@ -110,15 +96,7 @@ namespace Map_Generator
             return value; // value will return in range -1 to 1. To make it in range 0 to 1, multiply by 0.5 and add 0.5
         }
 
-
-
-
-
-
-
-        //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-
-        static Color[,] Perlin(int size, int range, Color[,] data)
+        static Color[,] PerlinNoise(int size, int range, Color[,] data)
         {
             for (int x = 0; x < size; x++)
             {
@@ -126,16 +104,12 @@ namespace Map_Generator
                 {
                     float val = 0;
 
-                    float freq = 1;
-                    float amp = 1;
-                    val += perlin(x * freq / 100, y * freq / 100) * amp;
+                    float freq = 2;
+                    float amp = 0.5f;
+                    val += perlin(x * (float)Math.Pow(freq, 0) / range, y * (float)Math.Pow(freq, 0) / range) * (float)Math.Pow(amp, 0);
                     for (int i = 0; i < 12; i++)
                     {
-                        val += perlin(x * freq / 100, y * freq / 100) * amp;
-
-                        freq *= 2;
-                        amp /= 2;
-
+                        val += perlin(x * (float)Math.Pow(freq, i) / range, y * (float) Math.Pow(freq, i) / range) * (float)Math.Pow(amp, i);
                     }
 
                     // Clipping
@@ -153,7 +127,7 @@ namespace Map_Generator
             return data;
         }
 
-        static Color[,] Noise(int size, int range, Color[,] data) // Generating noise texture
+        static Color[,] ClothNoise(int size, int range, Color[,] data) // Generating noise texture
         {
             Random rnd = new Random();
 
