@@ -28,6 +28,7 @@ namespace Map_Generator
             Console.ReadKey();
         }
 
+        // P E R L I N
         static float interpolate(float a0, float a1, float w) // Interpolate between a0 and a1; Weight w should be in the range [0.0, 1.0]
         {
             // Cubic interpolation [[Smoothstep]]:
@@ -67,14 +68,13 @@ namespace Map_Generator
 
         static float perlin(float x, float y) // Compute Perlin noise at coordinates x, y
         {
-            // Determine grid cell coordinates
-            int x0 = (int)Math.Floor(x);
-            int x1 = x0 + 1;
-            int y0 = (int)Math.Floor(y);
-            int y1 = y0 + 1;
+            // Grid cell coordinates
+            int x0 = (int)Math.Floor(x); // Left
+            int x1 = x0 + 1;             // Right
+            int y0 = (int)Math.Floor(y); // Bottom
+            int y1 = y0 + 1;             // Top
 
-            // Determine interpolation weights
-            // Could also use higher order polynomial/s-curve here
+            // Interpolation weights
             float sx = x - (float)x0;
             float sy = y - (float)y0;
 
@@ -96,21 +96,31 @@ namespace Map_Generator
             return value; // value will return in range -1 to 1. To make it in range 0 to 1, multiply by 0.5 and add 0.5
         }
 
-        static Color[,] PerlinNoise(int size, int range, Color[,] data)
+        static Color[,] PerlinNoise(int size, int range, Color[,] data) // Generating noise texture
         {
             for (int x = 0; x < size; x++)
             {
                 for (int y = 0; y < size; y++)
                 {
+                    // Noise value at x, y
                     float val = 0;
 
+                    // Octave default influence values
                     float freq = 2;
                     float amp = 0.5f;
-                    val += perlin(x * (float)Math.Pow(freq, 0) / range, y * (float)Math.Pow(freq, 0) / range) * (float)Math.Pow(amp, 0);
+
+                    //val += perlin((float)x / range, (float)y / range);
+                    // Adding i octaves of noise values
                     for (int i = 0; i < 12; i++)
                     {
-                        val += perlin(x * (float)Math.Pow(freq, i) / range, y * (float) Math.Pow(freq, i) / range) * (float)Math.Pow(amp, i);
+                        // Octave current influence values
+                        float curFreq = (float)Math.Pow(freq, i);
+                        float curAmp = (float)Math.Pow(amp, i);
+
+                        val += perlin(x * curFreq / range, y * curFreq / range) * curAmp;
                     }
+
+                    val *= 1.5f;
 
                     // Clipping
                     if (val > 1.0f)
@@ -118,7 +128,7 @@ namespace Map_Generator
                     else if (val < -1.0f)
                         val = -1.0f;
 
-                    // Convert 1 to -1 into 255 to 0
+                    // Convert [-1, 1] to [0, 255]
                     int color = (int)(((val + 1.0f) * 0.5f) * 255);
 
                     data[x, y] = Color.FromArgb(color, color, color);
