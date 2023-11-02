@@ -14,12 +14,29 @@ namespace Map_Generator
             Console.WriteLine("map scale (size / 5 - rec minimum): ");
             int range = int.Parse(Console.ReadLine());
 
+            Console.WriteLine("generation seed (-2147483648 to 2147483647): ");
+            int seed = int.Parse(Console.ReadLine());
+
+
+
+            Console.WriteLine("perlin octaves: ");
+            int octaves = int.Parse(Console.ReadLine());
+
+            // Octave default influence values
+            Console.WriteLine("octave base frequency (default - 2): ");
+            float freq = int.Parse(Console.ReadLine());
+
+            Console.WriteLine("octave base amplitude (default - 0.5): ");
+            float amp = float.Parse(Console.ReadLine());
+
+
+
             Color[,] data = new Color[size, size];
 
 
 
             //data = ClothNoise(size, range, data);
-            data = PerlinNoise(size, range, data);
+            data = PerlinNoise(size, range, octaves, freq, amp, seed, data);
              
             CreateImage(size, data);
 
@@ -96,8 +113,18 @@ namespace Map_Generator
             return value; // value will return in range -1 to 1. To make it in range 0 to 1, multiply by 0.5 and add 0.5
         }
 
-        static Color[,] PerlinNoise(int size, int range, Color[,] data) // Generating noise texture
+        static Color[,] PerlinNoise(int size, int range, int octaves, float freq, float amp, int seed, Color[,] data) // Generating noise texture
         {
+            Random prng = new Random(seed);
+
+            Vector2[] offsetOctaves = new Vector2[octaves];
+            for (int i = 0; i < octaves; i++)
+            {
+                float offsetX = prng.Next(-100000, 100000);
+                float offsetY = prng.Next(-100000, 100000);
+                offsetOctaves[i] = new Vector2(offsetX, offsetY);
+            }
+
             for (int x = 0; x < size; x++)
             {
                 for (int y = 0; y < size; y++)
@@ -105,19 +132,18 @@ namespace Map_Generator
                     // Noise value at x, y
                     float val = 0;
 
-                    // Octave default influence values
-                    float freq = 2;
-                    float amp = 0.5f;
-
                     //val += perlin((float)x / range, (float)y / range);
                     // Adding i octaves of noise values
-                    for (int i = 0; i < 12; i++)
+                    for (int i = 0; i < octaves; i++)
                     {
                         // Octave current influence values
                         float curFreq = (float)Math.Pow(freq, i);
                         float curAmp = (float)Math.Pow(amp, i);
 
-                        val += perlin(x * curFreq / range, y * curFreq / range) * curAmp;
+
+                        float cx = x * curFreq / range + offsetOctaves[i].X;
+                        float cy = y * curFreq / range + offsetOctaves[i].Y;
+                        val += perlin(cx, cy) * curAmp;
                     }
 
                     val *= 1.5f;
